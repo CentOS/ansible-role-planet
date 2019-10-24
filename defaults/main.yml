@@ -1,1 +1,21 @@
 # Defaults variables for role planet
+
+# Unprivileged user we'll use to own planet
+planet_local_user: planet
+
+# Settings for planet/seeds
+planet_name: Planet CentOS
+planet_link: https://planet.centos.org
+planet_owner_name: me
+planet_owner_email: me@domain.com
+
+# This is the feeds list
+planet_feeds_list:
+  - name: CentOS Blog
+    url: https://blog.centos.org/feed/
+    face: seven.png # This has to be copied to files/httpd/images to be copied to planet host
+
+# httpd directory used for vhost, tls
+planet_httpd_hostname: planet.centos.org
+planet_httpd_dir: /var/www/planet
+planet_httpd_tls: True

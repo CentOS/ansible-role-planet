@@ -1,0 +1,24 @@
+<VirtualHost *:80>
+ServerName {{ planet_httpd_hostname }}
+CustomLog logs/{{ planet_httpd_hostname }}_access.log combined
+ErrorLog logs/{{ planet_httpd_hostname }}_error.log
+DocumentRoot {{ planet_httpd_dir }}
+AccessFileName .htaccess
+ 
+   Header always set X-Frame-Options "SAMEORIGIN"
+   Header always set X-Xss-Protection "1; mode=block"
+   Header always set X-Content-Type-Options "nosniff"
+   Header always set Referrer-Policy "same-origin"
+
+{% if planet_httpd_tls %}
+   RewriteEngine On
+   RewriteCond $1 !^.well-known
+   RewriteCond %{HTTPS} !=on
+   RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R,L]
+{% endif %} 
+  <Location "/.well-known/">
+     ProxyPass "http://cephas.centos.org/.well-known/"
+   </Location>
+
+</VirtualHost>
+

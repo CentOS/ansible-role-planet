@@ -1,1 +1,90 @@
 # Defaults tasks for role planet
+
+- name: Ensuring we have local unprivileged user owning planet content
+  user:
+    name: "{{ planet_local_user }}"
+    comment: "Local planet user"
+
+- name: Ensuring planet pkg is installed
+  yum:
+    name: planet
+    state: installed
+
+- name: Ensuring we have some templates
+  copy:
+    src: centos
+    dest: "/home/{{ planet_local_user }}/"
+    owner: "{{ planet_local_user }}"
+
+- name: Configuring planet
+  template:
+    src: config.ini.j2
+    dest: "/home/{{ planet_local_user }}/config.ini"
+    owner: "{{ planet_local_user }}"
+    group: "{{ planet_local_user }}"
+  tags:
+    - config
+
+- name: Ensuring we have a document root for vhost
+  file:
+    path: "{{ planet_httpd_dir }}"
+    state: directory
+    owner: "{{ planet_local_user }}"
+
+- name: Needed themes/images for httpd vhost / planet
+  copy: 
+    src: "httpd/{{ item }}"
+    dest: "{{ planet_httpd_dir }}/"
+    owner: "{{ planet_local_user }}"
+    group: "{{ planet_local_user }}"
+  with_items:
+    - css
+    - js
+    - images
+
+- name: Configuring httpd
+  import_role:
+    name: httpd
+  vars:
+    httpd_tls: "{{ planet_httpd_tls }}"
+
+- name: Configuring httpd vhost
+  template:
+    src: 20_planet_vhost.conf.j2
+    dest: /etc/httpd/conf.d/20_planet_vhost.conf
+  notify:
+    - restart_httpd
+
+- name: Configuring https
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/httpd/conf.d/{{ item }}"
+  notify:
+    - restart_httpd
+  with_items:
+    - ssl-planet-vhost.conf
+  when: planet_httpd_tls  
+   
+- import_role:
+    name: httpd
+    tasks_from: pki-tls
+  vars:
+    pki_hostname: "{{ planet_httpd_hostname }}"
+  notify:
+    - restart_httpd
+  tags:
+    - tls
+  when: planet_httpd_tls
+
+- name: Cron job to refresh planet content
+  cron:
+    name: "Refresh planet content"
+    job: "cd /home/{{ planet_local_user }} && /usr/bin/planet >> planet.log 2>&1"
+    minute: "*/15"
+    user: "{{ planet_local_user }}"
+
+- name: Ensuring backup user and jobs
+  include_role:
+    name: centos-backup
+    tasks_from: client
+
