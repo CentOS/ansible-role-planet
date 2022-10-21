@@ -41,6 +41,8 @@
     - css
     - js
     - images
+  tags:
+    - theme
 
 - name: Configuring httpd
   import_role:
